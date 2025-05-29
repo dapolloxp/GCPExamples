@@ -1,9 +1,9 @@
 # Enable VPC-SC, Vertex and GCS APIs 
 
 resource "google_project_service" "enable-services" {
-  for_each = toset(var.services_to_enable)
-  project = var.project_id
-  service = each.value
+  for_each           = toset(var.services_to_enable)
+  project            = var.project_id
+  service            = each.value
   disable_on_destroy = false
 }
 
