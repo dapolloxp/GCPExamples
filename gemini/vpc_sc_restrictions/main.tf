@@ -31,6 +31,7 @@ resource "google_project_service" "gcs" {
 
 # Create organization level access policy 
 resource "google_access_context_manager_access_policy" "org_access_policy" {
+  count      = var.org_access_policy != "" ? 0 : 1
   parent     = "organizations/${var.organization_id}"
   title      = "Org Access Policy"
   depends_on = [google_project_service.vpc_sc]
@@ -38,8 +39,8 @@ resource "google_access_context_manager_access_policy" "org_access_policy" {
 
 # Define VPC SC perimeter associated with access policy  
 resource "google_access_context_manager_service_perimeter" "gemini_perimeter" {
-  parent         = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}"
-  name           = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}/servicePerimeters/${var.vpc_sc_perimeter_name}"
+  parent         = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}"
+  name           = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}/servicePerimeters/${var.vpc_sc_perimeter_name}" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}/servicePerimeters/${var.vpc_sc_perimeter_name}"
   title          = var.vpc_sc_perimeter_name
   perimeter_type = "PERIMETER_TYPE_REGULAR"
   lifecycle {
@@ -78,8 +79,8 @@ resource "google_access_context_manager_service_perimeter_ingress_policy" "ingre
 }
 
 resource "google_access_context_manager_access_level" "access_level" {
-  parent = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}"
-  name   = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}/accessLevels/restrictedip_only"
+  parent = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}"
+  name   = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}/accessLevels/restrictedip_only" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}/accessLevels/restrictedip_only"
   title  = "restrictedip_only"
   basic {
     conditions {

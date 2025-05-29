@@ -22,3 +22,9 @@ variable "restricted_ips" {
   description = "List of Restricted IP ranges"
   type        = list(string)
 }
+
+variable "org_access_policy" {
+  description = "Org policy number"
+  type        = string
+  default     = ""
+}
