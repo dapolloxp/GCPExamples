@@ -28,3 +28,13 @@ variable "org_access_policy" {
   type        = string
   default     = ""
 }
+
+variable "services_to_enable" {
+  type = list(string)
+  default =  [
+    
+    "aiplatform.googleapis.com",
+    "accesscontextmanager.googleapis.com",
+    "storage.googleapis.com"
+  ]
+}

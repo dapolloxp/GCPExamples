@@ -1,31 +1,9 @@
 # Enable VPC-SC, Vertex and GCS APIs 
-resource "google_project_service" "vpc_sc" {
-  project = var.project_id
-  service = "accesscontextmanager.googleapis.com"
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-  disable_on_destroy = false
-}
 
-resource "google_project_service" "vertex" {
+resource "google_project_service" "enable-services" {
+  for_each = toset(var.services_to_enable)
   project = var.project_id
-  service = "aiplatform.googleapis.com"
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "gcs" {
-  project = var.project_id
-  service = "storage.googleapis.com"
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
+  service = each.value
   disable_on_destroy = false
 }
 
@@ -34,7 +12,7 @@ resource "google_access_context_manager_access_policy" "org_access_policy" {
   count      = var.org_access_policy != "" ? 0 : 1
   parent     = "organizations/${var.organization_id}"
   title      = "Org Access Policy"
-  depends_on = [google_project_service.vpc_sc]
+  depends_on = [google_project_service.enable-services]
 }
 
 # Define VPC SC perimeter associated with access policy  
