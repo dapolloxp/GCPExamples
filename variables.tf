@@ -17,3 +17,8 @@ variable "vpc_sc_perimeter_name" {
   description = "VPC SC perimeter name"
   type        = string
 }
+
+variable "restricted_ips" {
+  description = "List of Restricted IP ranges"
+  type        = list(string)
+}

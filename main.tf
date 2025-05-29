@@ -19,7 +19,6 @@ resource "google_project_service" "vertex" {
   disable_on_destroy = false
 }
 
-
 resource "google_project_service" "gcs" {
   project = var.project_id
   service = "storage.googleapis.com"
@@ -37,32 +36,34 @@ resource "google_access_context_manager_access_policy" "org_access_policy" {
   depends_on = [google_project_service.vpc_sc]
 }
 
+# Define VPC SC perimeter associated with access policy  
 resource "google_access_context_manager_service_perimeter" "gemini_perimeter" {
   parent         = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}"
   name           = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}/servicePerimeters/${var.vpc_sc_perimeter_name}"
   title          = var.vpc_sc_perimeter_name
   perimeter_type = "PERIMETER_TYPE_REGULAR"
   lifecycle {
-    ignore_changes = [status[0].ingress_policies, status[0].resources] # Allows ingress policies to be managed by google_access_context_manager_service_perimeter_ingress_policy resources
+    ignore_changes = [status[0].ingress_policies, status[0].resources]
   }
   status {
     restricted_services = ["aiplatform.googleapis.com", "storage.googleapis.com"]
   }
 }
 
+# Add project to VPC SC Perimeter
 resource "google_access_context_manager_service_perimeter_resource" "service_perimeter_resource" {
   perimeter_name = google_access_context_manager_service_perimeter.gemini_perimeter.name
   resource       = "projects/${var.gcp_project_number}"
 }
 
-# Ingress Rule to allow IPs
+# Create Ingress Rule to allow Restricted IPs
 resource "google_access_context_manager_service_perimeter_ingress_policy" "ingress_policy" {
   perimeter = google_access_context_manager_service_perimeter.gemini_perimeter.name
   title     = "Gemini_Inbound"
   ingress_from {
     identity_type = "ANY_IDENTITY"
     sources {
-      access_level = google_access_context_manager_access_level.us_access_level.name
+      access_level = google_access_context_manager_access_level.access_level.name
     }
   }
   ingress_to {
@@ -74,20 +75,15 @@ resource "google_access_context_manager_service_perimeter_ingress_policy" "ingre
       }
     }
   }
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
-resource "google_access_context_manager_access_level" "us_access_level" {
+resource "google_access_context_manager_access_level" "access_level" {
   parent = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}"
-  name   = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}/accessLevels/us_only"
-  title  = "us_only"
+  name   = "accessPolicies/${google_access_context_manager_access_policy.org_access_policy.name}/accessLevels/restrictedip_only"
+  title  = "restrictedip_only"
   basic {
     conditions {
-      regions = [
-        "US",
-      ]
+      ip_subnetworks = var.restricted_ips
     }
   }
 }
