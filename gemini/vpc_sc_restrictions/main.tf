@@ -1,4 +1,8 @@
-# Enable VPC-SC, Vertex and GCS APIs 
+# Enable VPC-SC, Vertex and GCS APIs
+
+locals {
+  org_access_policy_name = var.org_access_policy != "" ? var.org_access_policy : google_access_context_manager_access_policy.org_access_policy[0].name
+}
 
 resource "google_project_service" "enable-services" {
   for_each           = toset(var.services_to_enable)
@@ -7,7 +11,7 @@ resource "google_project_service" "enable-services" {
   disable_on_destroy = false
 }
 
-# Create organization level access policy 
+# Create organization level access policy
 resource "google_access_context_manager_access_policy" "org_access_policy" {
   count      = var.org_access_policy != "" ? 0 : 1
   parent     = "organizations/${var.organization_id}"
@@ -15,11 +19,11 @@ resource "google_access_context_manager_access_policy" "org_access_policy" {
   depends_on = [google_project_service.enable-services]
 }
 
-# Define VPC SC perimeter associated with access policy  
+# Define VPC SC perimeter associated with access policy
 resource "google_access_context_manager_service_perimeter" "gemini_perimeter" {
-  parent         = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}"
-  name           = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}/servicePerimeters/${var.vpc_sc_perimeter_name}" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}/servicePerimeters/${var.vpc_sc_perimeter_name}"
-  title          = var.vpc_sc_perimeter_name
+  parent         = "accessPolicies/${local.org_access_policy_name}"
+  title = "${var.vpc_sc_perimeter_name}"
+  name           = "accessPolicies/${local.org_access_policy_name}/servicePerimeters/${var.vpc_sc_perimeter_name}"
   perimeter_type = "PERIMETER_TYPE_REGULAR"
   lifecycle {
     ignore_changes = [status[0].ingress_policies, status[0].resources]
@@ -57,8 +61,8 @@ resource "google_access_context_manager_service_perimeter_ingress_policy" "ingre
 }
 
 resource "google_access_context_manager_access_level" "access_level" {
-  parent = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}"
-  name   = var.org_access_policy != "" ? "accessPolicies/${var.org_access_policy}/accessLevels/restrictedip_only" : "accessPolicies/${google_access_context_manager_access_policy.org_access_policy[0].name}/accessLevels/restrictedip_only"
+  name   = "accessPolicies/${local.org_access_policy_name}/accessLevels/restrictedip_only"
+  parent = "accessPolicies/${local.org_access_policy_name}"
   title  = "restrictedip_only"
   basic {
     conditions {
